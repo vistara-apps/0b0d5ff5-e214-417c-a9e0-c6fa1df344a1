@@ -1,9 +1,17 @@
-import { Position, GameState, PowerUp } from './types';
+import { Position, GameState, PowerUp, Map as GameMap } from './types';
 
 export const GRID_SIZE = 20;
 export const CELL_SIZE = 20;
 export const INITIAL_SPEED = 150;
 export const SPEED_INCREMENT = 10;
+
+// Power-up definitions
+export const POWER_UPS = {
+  shield: { name: 'Shield', duration: 5000, color: '#00ff41' },
+  speed: { name: 'Speed Boost', duration: 3000, color: '#ff4500' },
+  multiplier: { name: 'Score Multiplier', duration: 10000, color: '#ffd700' },
+  magnet: { name: 'Magnet', duration: 8000, color: '#00d4ff' },
+} as const;
 
 export function createInitialGameState(): GameState {
   const centerX = Math.floor(GRID_SIZE / 2);
@@ -25,19 +33,95 @@ export function createInitialGameState(): GameState {
   };
 }
 
-export function generateFood(snake: Position[]): Position {
+export function generateFood(snake: Position[], currentMap?: GameMap): Position {
   let food: Position;
+  let attempts = 0;
+  const maxAttempts = 100;
+
   do {
     food = {
       x: Math.floor(Math.random() * GRID_SIZE),
       y: Math.floor(Math.random() * GRID_SIZE),
     };
-  } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
-  
+    attempts++;
+  } while (
+    attempts < maxAttempts && (
+      snake.some(segment => segment.x === food.x && segment.y === food.y) ||
+      currentMap?.obstacles?.some(obstacle =>
+        obstacle.coordinates.some(coord => coord[0] === food.x && coord[1] === food.y)
+      )
+    )
+  );
+
   return food;
 }
 
-export function moveSnake(state: GameState): GameState {
+// Power-up management
+export function activatePowerUp(state: GameState, powerUpType: keyof typeof POWER_UPS): GameState {
+  const powerUp = POWER_UPS[powerUpType];
+  const newPowerUp: PowerUp = {
+    type: powerUpType,
+    duration: powerUp.duration,
+    active: true,
+  };
+
+  const existingIndex = state.activePowerUps?.findIndex(p => p.type === powerUpType) ?? -1;
+
+  if (existingIndex >= 0) {
+    // Extend duration of existing power-up
+    const updatedPowerUps = [...(state.activePowerUps || [])];
+    updatedPowerUps[existingIndex] = {
+      ...updatedPowerUps[existingIndex],
+      duration: Math.min(updatedPowerUps[existingIndex].duration + powerUp.duration, powerUp.duration * 2),
+    };
+
+    return {
+      ...state,
+      activePowerUps: updatedPowerUps,
+    };
+  } else {
+    // Add new power-up
+    return {
+      ...state,
+      activePowerUps: [...(state.activePowerUps || []), newPowerUp],
+    };
+  }
+}
+
+export function updatePowerUps(state: GameState, deltaTime: number): GameState {
+  if (!state.activePowerUps || state.activePowerUps.length === 0) {
+    return state;
+  }
+
+  const updatedPowerUps = state.activePowerUps
+    .map(powerUp => ({
+      ...powerUp,
+      duration: Math.max(0, powerUp.duration - deltaTime),
+    }))
+    .filter(powerUp => powerUp.duration > 0 || !powerUp.active);
+
+  // Deactivate expired power-ups
+  updatedPowerUps.forEach(powerUp => {
+    if (powerUp.duration <= 0) {
+      powerUp.active = false;
+    }
+  });
+
+  return {
+    ...state,
+    activePowerUps: updatedPowerUps,
+  };
+}
+
+// Speed boost effect
+export function getEffectiveSpeed(baseSpeed: number, activePowerUps: PowerUp[]): number {
+  if (activePowerUps?.some(p => p.type === 'speed' && p.active)) {
+    return Math.max(30, baseSpeed * 0.6); // 40% faster, minimum 30ms
+  }
+  return baseSpeed;
+}
+
+export function moveSnake(state: GameState, currentMap?: GameMap): GameState {
   if (state.isGameOver || state.isPaused) return state;
 
   const head = state.snake[0];
@@ -65,11 +149,37 @@ export function moveSnake(state: GameState): GameState {
     newHead.y < 0 ||
     newHead.y >= GRID_SIZE
   ) {
+    // Check if shield is active
+    if (state.activePowerUps?.some(p => p.type === 'shield' && p.active)) {
+      // Bounce back instead of game over
+      return state;
+    }
     return { ...state, isGameOver: true };
+  }
+
+  // Check obstacle collision (if map has obstacles)
+  if (currentMap?.obstacles) {
+    const hitObstacle = currentMap.obstacles.some(obstacle =>
+      obstacle.coordinates.some(coord => coord[0] === newHead.x && coord[1] === newHead.y)
+    );
+
+    if (hitObstacle) {
+      // Check if shield is active
+      if (state.activePowerUps?.some(p => p.type === 'shield' && p.active)) {
+        // Bounce back instead of game over
+        return state;
+      }
+      return { ...state, isGameOver: true };
+    }
   }
 
   // Check self collision
   if (state.snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
+    // Check if shield is active
+    if (state.activePowerUps?.some(p => p.type === 'shield' && p.active)) {
+      // Bounce back instead of game over
+      return state;
+    }
     return { ...state, isGameOver: true };
   }
 
@@ -77,14 +187,21 @@ export function moveSnake(state: GameState): GameState {
 
   // Check food collision
   if (newHead.x === state.food.x && newHead.y === state.food.y) {
-    const newScore = state.score + 10;
+    let scoreIncrease = 10;
+
+    // Apply score multiplier if active
+    if (state.activePowerUps?.some(p => p.type === 'multiplier' && p.active)) {
+      scoreIncrease *= 2;
+    }
+
+    const newScore = state.score + scoreIncrease;
     const newLevel = Math.floor(newScore / 100) + 1;
     const newSpeed = Math.max(50, INITIAL_SPEED - (newLevel - 1) * SPEED_INCREMENT);
-    
+
     return {
       ...state,
       snake: newSnake,
-      food: generateFood(newSnake),
+      food: generateFood(newSnake, currentMap),
       score: newScore,
       level: newLevel,
       speed: newSpeed,

@@ -12,6 +12,8 @@ export interface GameState {
   isGameOver: boolean;
   isPaused: boolean;
   speed: number;
+  activePowerUps?: PowerUp[];
+  currentMap?: string;
 }
 
 export interface User {
