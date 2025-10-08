@@ -1,0 +1,14 @@
+{
+  "name": "SnakeFi",
+  "description": "SnakeFi is a Base Mini App built with Zara.",
+  "image": "https://dummyimage.com/1200x628/0a0b0d/ffffff.png&text=OG",
+  "external_url": "https://0b0d5ff5-e214-417c-a9e0-c6fa1df344a1.vercel.app",
+  "properties": {
+    "app": {
+      "name": "SnakeFi",
+      "description": "SnakeFi is a Base Mini App built with Zara.",
+      "url": "https://0b0d5ff5-e214-417c-a9e0-c6fa1df344a1.vercel.app",
+      "icon": "https://0co.to/images/zara-2.png"
+    }
+  }
+}

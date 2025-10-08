@@ -1,0 +1,30 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "frame": {
+    "version": "1",
+    "name": "SnakeFi",
+    "subtitle": "Built with Zara",
+    "description": "SnakeFi is a Base Mini App built with Zara.",
+    "iconUrl": "https://0co.to/images/zara-2.png",
+    "homeUrl": "https://0b0d5ff5e214417ca9e0c6fa1df344a1-6wot.vercel.app",
+    "splashImageUrl": "https://0b0d5ff5e214417ca9e0c6fa1df344a1-6wot.vercel.app/splash.png",
+    "splashBackgroundColor": "#000000",
+    "heroImageUrl": "https://0b0d5ff5e214417ca9e0c6fa1df344a1-6wot.vercel.app/image.png",
+    "tagline": "SnakeFi",
+    "screenshotUrls": [
+      "https://0b0d5ff5e214417ca9e0c6fa1df344a1-6wot.vercel.app/screenshot.png",
+      "https://0b0d5ff5e214417ca9e0c6fa1df344a1-6wot.vercel.app/screenshot.png"
+    ],
+    "primaryCategory": "social",
+    "tags": [
+      "base",
+      "miniapp",
+      "onchainkit"
+    ],
+    "webhookUrl": "https://0b0d5ff5e214417ca9e0c6fa1df344a1-6wot.vercel.app/api/webhook"
+  }
+}
